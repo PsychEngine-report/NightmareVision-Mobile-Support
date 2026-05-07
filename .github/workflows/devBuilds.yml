@@ -97,7 +97,7 @@ jobs:
           if-no-files-found: error
    iOS:
     name: Build iOS
-    runs-on: macos-14
+    runs-on: macos-latest
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -123,8 +123,10 @@ jobs:
 
       - name: Rebuild Mac/iOS Lime binaries
         run: |
-          haxelib run lime rebuild mac -release
-          haxelib run lime rebuild ios -release
+          export CPPM_EXTRA_FLAGS="-std=c++20"
+          
+          haxelib run lime rebuild mac -release -DHXCPP_CPP20
+          haxelib run lime rebuild ios -release -DHXCPP_CPP20
 
       - name: Compile Xcode Project
         # We build the project first without signing to generate the .xcodeproj
@@ -133,21 +135,13 @@ jobs:
       - name: Build and Export IPA
         working-directory: export/release/ios/bin
         run: |
-          # 1. Archive the project
-          xcodebuild archive \
-            -project "NightmareVision.xcodeproj" \
-            -scheme "NightmareVision" \
-            -archivePath "build/NightmareVision.xcarchive" \
-            -allowProvisioningUpdates \
-            -quiet
-
-          # 2. Export the IPA
-          # Note: You need an ExportOptions.plist in your repo root
-          xcodebuild -exportArchive \
-            -archivePath "build/NightmareVision.xcarchive" \
-            -exportPath "build/ipa" \
-            -exportOptionsPlist "../../../../ios/ExportOptions.plist" \
-            -allowProvisioningUpdates
+          brew install ldid
+          cd export/release/ios/build/Release-iphoneos/NightmareVision.app
+          ldid -S../../../NightmareVision/NightmareVision.entitlements NightmareVision
+          cd ..
+          mkdir Payload
+          mv NightmareVision.app Payload
+          zip -r NightmareVision.ipa Payload
 
       - name: Upload IPA Artifact
         uses: actions/upload-artifact@v4
