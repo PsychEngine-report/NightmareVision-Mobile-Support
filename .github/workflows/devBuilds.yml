@@ -105,11 +105,15 @@ jobs:
           submodules: true
 
       - name: Setup Haxe
-        uses: krdlab/setup-haxe@v1
+        uses: krdlab/setup-haxe@master
         with:
           haxe-version: 4.3.7
 
-      # [Standard Haxe/Lime Setup Steps as before...]
+      - name: Install Linux system deps
+        run: |
+          Run haxelib install hxcpp --quiet
+          Run haxelib install hxpkg --quiet
+          Run haxelib run hxpkg install
 
       - name: Rebuild Mac/iOS Lime binaries
         run: |
