@@ -95,6 +95,56 @@ jobs:
           name: NightmareVision (Android)
           path: export/release/android/bin/app/build/outputs/apk/release/*.apk
           if-no-files-found: error
+   iOS:
+    name: Build iOS
+    runs-on: macos-14
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Setup Haxe
+        uses: krdlab/setup-haxe@v1
+        with:
+          haxe-version: 4.3.7
+
+      # [Standard Haxe/Lime Setup Steps as before...]
+
+      - name: Rebuild Mac/iOS Lime binaries
+        run: |
+          haxelib run lime rebuild mac -release
+          haxelib run lime rebuild ios -release
+
+      - name: Compile Xcode Project
+        # We build the project first without signing to generate the .xcodeproj
+        run: haxelib run lime build ios -release -nosign -D ${{inputs.buildFlags}}
+
+      - name: Build and Export IPA
+        working-directory: export/release/ios/bin
+        run: |
+          # 1. Archive the project
+          xcodebuild archive \
+            -project "NightmareVision.xcodeproj" \
+            -scheme "NightmareVision" \
+            -archivePath "build/NightmareVision.xcarchive" \
+            -allowProvisioningUpdates \
+            -quiet
+
+          # 2. Export the IPA
+          # Note: You need an ExportOptions.plist in your repo root
+          xcodebuild -exportArchive \
+            -archivePath "build/NightmareVision.xcarchive" \
+            -exportPath "build/ipa" \
+            -exportOptionsPlist "../../../../ios/ExportOptions.plist" \
+            -allowProvisioningUpdates
+
+      - name: Upload IPA Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: NightmareVision-iOS-IPA
+          path: export/release/ios/bin/build/ipa/*.ipa
+          
    Windows:
     name: Build Windows
     runs-on: windows-latest
