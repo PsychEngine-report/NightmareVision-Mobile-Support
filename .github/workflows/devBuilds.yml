@@ -109,11 +109,17 @@ jobs:
         with:
           haxe-version: 4.3.7
 
-      - name: Install Linux system deps
+      - name: Install ios system deps
         run: |
-          Run haxelib install hxcpp --quiet
-          Run haxelib install hxpkg --quiet
-          Run haxelib run hxpkg install
+          haxelib setup ~/haxelib
+          haxelib install hxcpp --quiet
+          haxelib install hxpkg --quiet
+          haxelib run hxpkg install
+          rm -rf .haxelib/lime
+          git clone https://github.com/FunkinCrew/lime .haxelib/lime/git
+          git -C .haxelib/lime/git checkout 6421de16b9dfa4fb55c19f12db65d392a57585c8
+          git -C .haxelib/lime/git submodule update --init --recursive --force
+          haxelib dev lime .haxelib/lime/git
 
       - name: Rebuild Mac/iOS Lime binaries
         run: |
